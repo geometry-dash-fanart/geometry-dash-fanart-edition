@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry Dash - Fan Art Edition</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: white;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #004d99;
+            transition: background 0.8s ease;
+        }
+
+        canvas { display: block; position: absolute; top: 0; left: 0; }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            text-align: center;
+            transition: 0.3s ease;
+        }
+
+        .hidden { opacity: 0; pointer-events: none; transform: scale(1.1); }
+
+        h1 {
+            font-size: 60px;
+            margin: 0;
+            letter-spacing: 4px;
+            font-weight: 900;
+            text-transform: uppercase;
+            background: linear-gradient(to bottom, #fff, #999);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .fan-art-subtitle {
+            font-size: 16px;
+            color: #00ffff;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .menu-buttons { display: flex; flex-direction: column; gap: 12px; }
+
+        .btn {
+            padding: 16px 0;
+            width: 320px;
+            font-size: 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+            transition: 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #00ffff;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .yt-btn {
+            background: rgba(255, 0, 0, 0.2);
+            border-color: #ff0000;
+        }
+        .yt-btn:hover {
+            background: #ff0000;
+            box-shadow: 0 5px 20px rgba(255, 0, 0, 0.5);
+            border-color: #fff;
+        }
+
+        #levels-list {
+            width: 450px;
+            max-height: 50vh;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .level-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .level-info h3 { margin: 0; font-size: 18px; color: #fff; }
+        .level-info .best-score { font-size: 12px; color: #00ffff; }
+
+        .play-small-btn {
+            background: #2ecc71;
+            border: none;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .hud { position: absolute; top: 20px; width: 100%; display: none; justify-content: space-between; padding: 0 40px; box-sizing: border-box; z-index: 50; }
+        .stat { background: rgba(0,0,0,0.8); padding: 8px 15px; border-radius: 5px; border-left: 4px solid #00ffff; font-weight: bold; font-size: 14px; }
+        
+        #game-progress-wrap { 
+            position: absolute; 
+            top: 30px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 350px; 
+            height: 12px; 
+            background: rgba(0,0,0,0.6); 
+            border-radius: 6px; 
+            display: none; 
+            overflow: hidden; 
+            border: 2px solid #333; 
+            z-index: 50;
+        }
+        #progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #00ffff, #0088ff); box-shadow: 0 0 10px #00ffff; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="ui-layer" class="overlay">
+        <h1>GEOMETRY DASH</h1>
+        <div class="fan-art-subtitle">Fan Art Edition</div>
+        <div class="menu-buttons">
+            <button class="btn" id="start-btn">QUICK START</button>
+            <button class="btn" id="open-levels-btn">LEVEL SELECT</button>
+            <button class="btn" id="color-btn">SKIN COLOR</button>
+            <button class="btn yt-btn" id="yt-btn">MY YOUTUBE CHANNEL</button>
+        </div>
+    </div>
+
+    <div id="levels-layer" class="overlay hidden">
+        <h1>LEVELS</h1>
+        <div id="levels-list"></div>
+        <button class="btn" onclick="toggleLayer('levels-layer', 'ui-layer')">BACK</button>
+    </div>
+
+    <div id="color-layer" class="overlay hidden">
+        <h2>SELECT COLOR</h2>
+        <div id="color-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 25px 0;"></div>
+        <div id="yt-skin-container" style="display:none; margin-top: 10px;">
+             <p style="color: #ff4444; font-weight: bold;">YOUTUBE SPECIAL UNLOCKED!</p>
+             <button id="yt-skin-select" style="width: 60px; height: 60px; background: #ff0000; border: 3px solid #fff; border-radius: 5px; cursor:pointer; position: relative;">
+                <div style="width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 15px solid white; position: absolute; top: 50%; left: 55%; transform: translate(-50%, -50%);"></div>
+             </button>
+        </div>
+        <button class="btn" onclick="toggleLayer('color-layer', 'ui-layer')" style="margin-top:20px">BACK</button>
+    </div>
+
+    <div id="pause-layer" class="overlay hidden">
+        <h1>PAUSED</h1>
+        <div class="menu-buttons" style="margin-top:20px">
+            <button class="btn" id="resume-btn" style="background:#2ecc71">RESUME</button>
+            <button class="btn" onclick="location.reload()">MAIN MENU</button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+    
+    <div class="hud" id="hud">
+        <div class="stat" id="lvl-txt">THEME: STEREO MADNESS</div>
+        <div class="stat" id="att-txt">ATTEMPT 1</div>
+    </div>
+    <div id="game-progress-wrap">
+        <div id="progress-fill"></div>
+    </div>
+</div>
+
+<script>
+/**
+ * GEOMETRY DASH - FAN ART EDITION
+ * GÜNCELLEME: Ses Sistemi (Web Audio API) Eklendi.
+ */
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const container = document.getElementById('game-container');
+
+// Ses Bağlamı (Sesleri üretmek için)
+let audioCtx = null;
+
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+}
+
+// Zıplama sesi üretici (Retro Square Wave)
+function playJumpSound() {
+    if (!audioCtx) return;
+    
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(200, audioCtx.currentTime); // Başlangıç frekansı
+    oscillator.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1); // Yükselen bip
+
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.15);
+}
+
+const levelThemes = [
+    { id: 0, name: "Stereo Madness", bg: '#0055ff', ground: '#002266', speed: 11, best: 0 },
+    { id: 1, name: "Back on Track", bg: '#ff0066', ground: '#660022', speed: 12.5, best: 0 },
+    { id: 2, name: "Polargeist", bg: '#00bb44', ground: '#004411', speed: 14, best: 0 }
+];
+
+let GRAVITY_VAL = 1.35;
+let gravityDirection = 1; 
+const JUMP_FORCE = -19.5;
+const PAD_FORCE = -25.0;
+
+let currentThemeIdx = 0;
+let subLevel = 1; 
+let attempts = 1;
+let frames = 0;
+let gameActive = false;
+let isPaused = false;
+let trail = [];
+let ytUnlocked = false;
+
+let player = {
+    x: 250, 
+    y: 0, 
+    w: 52, 
+    h: 52, 
+    vy: 0, 
+    rotation: 0, 
+    onGround: false, 
+    color: '#00ffff',
+    isYTSkin: false
+};
+
+let levelObjects = [];
+let levelLength = 0;
+
+function toggleLayer(hideId, showId) {
+    document.getElementById(hideId).classList.add('hidden');
+    document.getElementById(showId).classList.remove('hidden');
+}
+
+// YouTube Buton Fonksiyonu
+document.getElementById('yt-btn').onclick = () => {
+    window.open('https://www.youtube.com/@errorxminecraft', '_blank');
+    ytUnlocked = true;
+    document.getElementById('yt-skin-container').style.display = 'block';
+};
+
+document.getElementById('yt-skin-select').onclick = () => {
+    player.isYTSkin = true;
+    player.color = '#ff0000';
+    toggleLayer('color-layer', 'ui-layer');
+};
+
+document.getElementById('start-btn').onclick = () => {
+    initAudio(); // Kullanıcı etkileşimi ile sesi başlat
+    startTheme(0);
+};
+
+document.getElementById('open-levels-btn').onclick = () => { 
+    initAudio();
+    updateLevelsListUI(); 
+    toggleLayer('ui-layer', 'levels-layer'); 
+};
+
+document.getElementById('color-btn').onclick = () => toggleLayer('ui-layer', 'color-layer');
+
+function updateLevelsListUI() {
+    const list = document.getElementById('levels-list');
+    list.innerHTML = '';
+    levelThemes.forEach((t, idx) => {
+        const item = document.createElement('div');
+        item.className = 'level-item';
+        item.innerHTML = `
+            <div class="level-info">
+                <h3>${t.name}</h3>
+                <div class="best-score">PROGRESS: ${t.best}%</div>
+            </div>
+            <button class="play-small-btn" onclick="startTheme(${idx})">PLAY</button>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function startTheme(idx) {
+    currentThemeIdx = idx;
+    subLevel = 1;
+    attempts = 1;
+    document.getElementById('ui-layer').classList.add('hidden');
+    document.getElementById('levels-layer').classList.add('hidden');
+    document.getElementById('hud').style.display = 'flex';
+    document.getElementById('game-progress-wrap').style.display = 'block';
+    gameActive = true;
+    initLevel();
+}
+
+const colors = ['#00ffff', '#ff00ff', '#ffff00', '#00ff00', '#ff4444', '#ffffff', '#ff8800', '#aa00ff'];
+const grid = document.getElementById('color-grid');
+colors.forEach(c => {
+    const d = document.createElement('div');
+    d.style.width = '55px'; d.style.height = '55px'; d.style.borderRadius = '5px';
+    d.style.backgroundColor = c; d.style.cursor = 'pointer'; d.style.border = '2px solid #fff';
+    d.onclick = () => { 
+        player.color = c; 
+        player.isYTSkin = false;
+        toggleLayer('color-layer', 'ui-layer'); 
+    };
+    grid.appendChild(d);
+});
+
+const jumpAction = () => {
+    if(!gameActive || isPaused) return;
+    if(player.onGround) {
+        player.vy = JUMP_FORCE * gravityDirection;
+        player.onGround = false;
+        playJumpSound(); // Zıplama sesini çal
+    }
+};
+
+window.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && gameActive) {
+        isPaused = true; gameActive = false;
+        document.getElementById('pause-layer').classList.remove('hidden');
+    }
+    if(e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); jumpAction(); }
+});
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); jumpAction(); });
+canvas.addEventListener('mousedown', (e) => { if(e.button === 0) jumpAction(); });
+
+document.getElementById('resume-btn').onclick = () => {
+    document.getElementById('pause-layer').classList.add('hidden');
+    isPaused = false; gameActive = true;
+};
+
+function initLevel() {
+    levelObjects = [];
+    trail = [];
+    gravityDirection = 1;
+    const theme = levelThemes[currentThemeIdx];
+    container.style.background = theme.bg;
+
+    levelLength = 6000 + (subLevel * 1500);
+    const groundY = canvas.height - 180;
+    const ceilingY = 100;
+    
+    let lastX = 1200;
+    let isInverted = false;
+
+    while(lastX < levelLength - 1500) {
+        let gap = 350 + (Math.random() * 400);
+        lastX += gap;
+        
+        let rand = Math.random();
+        
+        if(rand > 0.7) {
+            levelObjects.push({ type: 'spike', x: lastX, y: groundY, w: 50, h: 54, side: 'ground' });
+        } else if (rand > 0.4) {
+            let blockX = lastX;
+            let blockY = groundY - 52;
+            levelObjects.push({ type: 'block', x: blockX, y: blockY, w: 52, h: 52 });
+            if (currentThemeIdx > 0 && Math.random() > 0.6) {
+                levelObjects.push({ type: 'pad', x: blockX - 4, y: blockY - 15, w: 60, h: 15 });
+            }
+        } else if (rand > 0.1 && currentThemeIdx > 0) {
+            if (!isInverted) {
+                levelObjects.push({ type: 'g-portal', x: lastX, y: groundY - 180, w: 60, h: 120, mode: 'invert' });
+                levelObjects.push({ type: 'spike', x: lastX + 400, y: ceilingY + 54, w: 50, h: 54, side: 'ceiling' });
+                isInverted = true;
+                lastX += 500;
+            } else {
+                levelObjects.push({ type: 'g-portal', x: lastX, y: ceilingY + 60, w: 60, h: 120, mode: 'normal' });
+                isInverted = false;
+                lastX += 400;
+            }
+        }
+    }
+
+    if(isInverted) {
+        levelObjects.push({ type: 'g-portal', x: levelLength - 800, y: ceilingY + 60, w: 60, h: 120, mode: 'normal' });
+    }
+
+    levelObjects.push({ type: 'portal', x: levelLength, y: groundY - 200, w: 120, h: 250 });
+    
+    player.y = groundY - player.h - 10;
+    player.vy = 0; 
+    player.rotation = 0;
+    
+    document.getElementById('lvl-txt').innerText = `LEVEL: ${theme.name.toUpperCase()} - ${subLevel}`;
+    document.getElementById('att-txt').innerText = `ATTEMPT ${attempts}`;
+}
+
+function checkCollision() {
+    const pBox = {
+        left: player.x,
+        right: player.x + player.w,
+        top: player.y,
+        bottom: player.y + player.h
+    };
+
+    for(let i = 0; i < levelObjects.length; i++) {
+        let obj = levelObjects[i];
+        if (obj.x + obj.w < pBox.left) continue;
+        if (obj.x > pBox.right) break;
+
+        let oBox;
+        if(obj.type === 'spike') {
+            if (obj.side === 'ceiling') {
+                oBox = { left: obj.x + 12, right: obj.x + obj.w - 12, top: obj.y - obj.h, bottom: obj.y - 5 };
+            } else {
+                oBox = { left: obj.x + 12, right: obj.x + obj.w - 12, top: obj.y - obj.h + 5, bottom: obj.y };
+            }
+        } else {
+            oBox = { left: obj.x, right: obj.x + obj.w, top: obj.y, bottom: obj.y + obj.h };
+        }
+
+        const isHit = pBox.left < oBox.right &&
+                      pBox.right > oBox.left &&
+                      pBox.top < oBox.bottom &&
+                      pBox.bottom > oBox.top;
+
+        if(isHit) {
+            if(obj.type === 'portal') {
+                handleLevelComplete();
+                return true;
+            } else if(obj.type === 'pad') {
+                player.vy = PAD_FORCE * gravityDirection;
+                player.onGround = false;
+                player.rotation += 0.5 * gravityDirection;
+                playJumpSound(); // Pede değince de zıplama sesi
+                return false;
+            } else if(obj.type === 'g-portal') {
+                gravityDirection = obj.mode === 'invert' ? -1 : 1;
+                return false;
+            } else if(obj.type === 'block') {
+                if (gravityDirection === 1) { 
+                    if (player.vy > 0 && pBox.bottom < oBox.top + 20) {
+                        player.y = oBox.top - player.h;
+                        player.vy = 0;
+                        player.onGround = true;
+                        return false;
+                    }
+                } else { 
+                    if (player.vy < 0 && pBox.top > oBox.bottom - 20) {
+                        player.y = oBox.bottom;
+                        player.vy = 0;
+                        player.onGround = true;
+                        return false;
+                    }
+                }
+                handleDeath();
+                return true;
+            } else {
+                handleDeath();
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function handleDeath() {
+    attempts++;
+    initLevel();
+}
+
+function handleLevelComplete() {
+    if(subLevel < 5) {
+        subLevel++;
+        initLevel();
+    } else {
+        if(currentThemeIdx < levelThemes.length - 1) {
+            currentThemeIdx++;
+            subLevel = 1;
+            initLevel();
+        } else {
+            alert("TEBRİKLER! OYUNU BİTİRDİN!");
+            location.reload();
+        }
+    }
+}
+
+function updatePhysics() {
+    if(!gameActive || isPaused) return;
+
+    const theme = levelThemes[currentThemeIdx];
+    const speed = theme.speed + (subLevel * 0.2);
+    const steps = 15;
+    const stepMove = speed / steps;
+
+    for(let s = 0; s < steps; s++) {
+        levelObjects.forEach(obj => obj.x -= stepMove);
+        if (checkCollision()) return;
+    }
+
+    player.vy += GRAVITY_VAL * gravityDirection;
+    player.y += player.vy;
+    
+    const groundY = canvas.height - 180;
+    const ceilingY = 100;
+
+    player.onGround = false; 
+
+    if(gravityDirection === 1) {
+        if(player.y + player.h >= groundY) {
+            player.y = groundY - player.h;
+            player.vy = 0;
+            player.onGround = true;
+        } else if (player.y <= ceilingY) {
+            handleDeath();
+        }
+    } else {
+        if(player.y <= ceilingY) {
+            player.y = ceilingY;
+            player.vy = 0;
+            player.onGround = true;
+        } else if (player.y + player.h >= groundY) {
+            handleDeath();
+        }
+    }
+
+    if(!player.onGround) {
+        player.rotation += 0.28 * gravityDirection;
+    } else {
+        let targetRot = Math.round(player.rotation / (Math.PI/2)) * (Math.PI/2);
+        player.rotation += (targetRot - player.rotation) * 0.3;
+    }
+
+    if(frames % 2 === 0) {
+        trail.unshift({ x: player.x, y: player.y, rot: player.rotation });
+        if(trail.length > 12) trail.pop();
+    }
+
+    let p = levelObjects.find(o => o.type === 'portal');
+    if (p) {
+        let progress = Math.min(100, Math.max(0, ((levelLength - p.x) / levelLength) * 100));
+        document.getElementById('progress-fill').style.width = progress + "%";
+        if(progress > theme.best) theme.best = Math.floor(progress);
+    }
+
+    frames++;
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const groundY = canvas.height - 180;
+    const ceilingY = 100;
+    const theme = levelThemes[currentThemeIdx];
+
+    // BG Grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    let gridS = 100;
+    let offset = (frames * (theme.speed + subLevel * 0.2)) % gridS;
+    for(let x = -offset; x < canvas.width; x += gridS) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+
+    // Ground & Ceiling
+    ctx.fillStyle = theme.ground;
+    ctx.fillRect(0, groundY, canvas.width, 200);
+    ctx.fillRect(0, 0, canvas.width, ceilingY);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+    ctx.strokeRect(-10, groundY, canvas.width + 20, 5);
+    ctx.strokeRect(-10, ceilingY - 5, canvas.width + 20, 5);
+
+    // Trail
+    trail.forEach((t, i) => {
+        ctx.save();
+        ctx.globalAlpha = (1 - i/trail.length) * 0.4;
+        ctx.translate(t.x + player.w/2, t.y + player.h/2);
+        ctx.rotate(t.rot);
+        ctx.fillStyle = player.color;
+        ctx.fillRect(-player.w/2, -player.h/2, player.w, player.h);
+        ctx.restore();
+    });
+
+    // Objects
+    levelObjects.forEach(obj => {
+        if(obj.x > canvas.width + 200 || obj.x + obj.w < -200) return;
+
+        if(obj.type === 'spike') {
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            if (obj.side === 'ceiling') {
+                ctx.moveTo(obj.x, obj.y - obj.h); ctx.lineTo(obj.x + obj.w/2, obj.y); ctx.lineTo(obj.x + obj.w, obj.y - obj.h);
+            } else {
+                ctx.moveTo(obj.x, obj.y); ctx.lineTo(obj.x + obj.w/2, obj.y - obj.h); ctx.lineTo(obj.x + obj.w, obj.y);
+            }
+            ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+        } else if(obj.type === 'block') {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+            ctx.strokeRect(obj.x + 5, obj.y + 5, obj.w - 10, obj.h - 10);
+        } else if(obj.type === 'pad') {
+            ctx.fillStyle = '#ffff00';
+            ctx.shadowBlur = 10; ctx.shadowColor = '#ffff00';
+            ctx.beginPath(); ctx.ellipse(obj.x + obj.w/2, obj.y + obj.h/2, obj.w/2, obj.h/2, 0, 0, Math.PI * 2);
+            ctx.fill(); ctx.shadowBlur = 0; ctx.strokeStyle = '#fff'; ctx.stroke();
+        } else if(obj.type === 'g-portal') {
+            ctx.fillStyle = obj.mode === 'invert' ? '#0088ff' : '#ff8800';
+            ctx.shadowBlur = 20; ctx.shadowColor = ctx.fillStyle;
+            ctx.beginPath(); ctx.ellipse(obj.x + obj.w/2, obj.y + obj.h/2, obj.w/2, obj.h/2, 0, 0, Math.PI * 2);
+            ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            if(obj.mode === 'invert') {
+                ctx.moveTo(obj.x + obj.w/2, obj.y + 30); ctx.lineTo(obj.x + obj.w/2 - 15, obj.y + 60); ctx.lineTo(obj.x + obj.w/2 + 15, obj.y + 60);
+            } else {
+                ctx.moveTo(obj.x + obj.w/2, obj.y + 90); ctx.lineTo(obj.x + obj.w/2 - 15, obj.y + 60); ctx.lineTo(obj.x + obj.w/2 + 15, obj.y + 60);
+            }
+            ctx.fill();
+        } else {
+            ctx.fillStyle = '#00ffff';
+            ctx.shadowBlur = 30; ctx.shadowColor = '#00ffff';
+            ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+            ctx.shadowBlur = 0;
+        }
+    });
+
+    // Player
+    ctx.save();
+    ctx.translate(player.x + player.w/2, player.y + player.h/2);
+    ctx.rotate(player.rotation);
+    ctx.fillStyle = player.color;
+    ctx.shadowBlur = 15; ctx.shadowColor = player.color;
+    ctx.fillRect(-player.w/2, -player.h/2, player.w, player.h);
+    
+    if (player.isYTSkin) {
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(8, 0);
+        ctx.lineTo(-8, 8);
+        ctx.lineTo(-8, -8);
+        ctx.closePath();
+        ctx.fill();
+    } else {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(-player.w/2 + 8, -player.h/2 + 8, player.w - 16, player.h - 16);
+    }
+    
+    ctx.restore();
+
+    updatePhysics();
+    requestAnimationFrame(draw);
+}
+
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
+draw();
+</script>
+</body>
+</html>
